@@ -1,124 +1,83 @@
-```lua
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/procyed-del/Ftap-Private-hub/refs/heads/main/library')))()
-local Players = game.Players
 local player = game.Players.LocalPlayer
-local ReplicatedStorage = game.ReplicatedStorage
-local GrabEvents = ReplicatedStorage:WaitForChild("GrabEvents")
-local SetNetworkOwner = GrabEvents:WaitForChild("SetNetworkOwner")
-local DestroyLine = GrabEvents:WaitForChild("DestroyGrabLine")
-local Window = OrionLib:MakeWindow({Name = "Title of the library", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
-local DevTab = Window:MakeTab({
-	Name = "Tab 1",
-	Icon = "rbxassetid://4483345998",
-	PremiumOnly = false
-})
+local playerGui = player:WaitForChild("PlayerGui")
+local playergui2 = playerGui:WaitForChild("Chat"):WaitForChild("Frame"):WaitForChild("ChatBarParentFrame"):WaitForChild("Frame")
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = playerGui
 
 
-local Section = DevTab:AddSection({
-	Name = "Section"
-})
-
-local camera = game.Workspace.CurrentCamera
-local function prenderFoco()
-    local cameraPosition = camera.CFrame.Position
-    local cameraOrientation = camera.CFrame.Rotation
-
-    camera.CameraType = Enum.CameraType.Scriptable
-    camera.CFrame = CFrame.new(cameraPosition, cameraPosition + cameraOrientation.LookVector)
-end
-local function soltarfoco()
-    camera.CameraType = Enum.CameraType.Custom
+local deletar = playergui2:FindFirstChild("BoxFrame")
+if deletar then
+    deletar:Destroy()
 end
 
-local playersDropdown1 = DevTab:AddDropdown({
-    Name = "Select Player",
-    Color = Color3.fromRGB(0, 0, 0),
-    Default = "",
-    Options = {},  
-    Callback = function(Value)
-        _G.alvonome2 = Value
-    end    
-})
 
-local playerList2 = {}
+local textBox = Instance.new("TextBox")
+textBox.Text = ""
+textBox.Transparency = 0.5
+textBox.TextScaled = true
+textBox.Size = UDim2.new(1, 0, 1, 0)
+textBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+textBox.Font = Enum.Font.SourceSans
+textBox.TextSize = 20
+textBox.PlaceholderText = "Clique aqui ou pressione ; ou / para digitar"
 
-local function updatePlayerList2()
-    playerList2 = {}
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= Players.LocalPlayer then
-            table.insert(playerList2, player.Name)
+textBox.Parent = screenGui
+textBox.Parent = playergui2
+
+
+local function formatMessage(message)
+    local formattedMessage = ""
+    for i = 1, #message do
+        local char = message:sub(i, i)
+        if char == " " then
+            formattedMessage = formattedMessage .. "   "
+        else
+            formattedMessage = formattedMessage .. "<" .. char .. ">"
         end
     end
-    playersDropdown1:Refresh(playerList2, true)
+    return formattedMessage
 end
 
-Players.PlayerAdded:Connect(updatePlayerList2)
-Players.PlayerRemoving:Connect(updatePlayerList2)
-
-updatePlayerList2()
 
 
-local function bring(alvonome)
-    local targetPlayer = game.Players:FindFirstChild(alvonome)
-    task.wait()
-    if not (targetPlayer and targetPlayer.Character) then return end
-    if targetPlayer.Character.Parent == Workspace then
-    _G.pegando = true
-    prenderFoco()
-    wait(0.4)
-    
-    local targetCharacter = targetPlayer.Character
-    local humanoidRootPart = targetCharacter:FindFirstChild("HumanoidRootPart")
-    local humanoid = targetCharacter:FindFirstChild("Humanoid")
-    
-    if not (humanoidRootPart and humanoid) or humanoid.Health <= 0 then return end
-    
-    local localCharacter = player.Character
-    if not (localCharacter and localCharacter:FindFirstChild("HumanoidRootPart")) then return end
-    
-    local localPosition = localCharacter.HumanoidRootPart.CFrame
-    local forwardDirection = localCharacter.HumanoidRootPart.CFrame.LookVector
-    
-    for _ = 1, 25 do
-        localCharacter.HumanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(0, 3, 0)
-        SetNetworkOwner:FireServer(targetCharacter.HumanoidRootPart, targetCharacter.HumanoidRootPart.CFrame)
-        task.wait(0.03)
-        localCharacter.HumanoidRootPart.Anchored = false
-        end
-    localCharacter.HumanoidRootPart.CFrame = localPosition
-    localCharacter.HumanoidRootPart.Anchored = true
-    task.wait(0.2)
-    
+local function sendChatMessage(message)
+    local formattedMessage = formatMessage(message)
+    game:GetService("ReplicatedStorage"):WaitForChild("DefaultChatSystemChatEvents")
+        .SayMessageRequest:FireServer(formattedMessage, "All")
+end
 
-    for _ = 1, 50 do
-        humanoidRootPart.CFrame = localPosition + forwardDirection * 10 + Vector3.new(0, 1, 0)
-        humanoidRootPart.Anchored = true
+
+local function showChatBubble()
+    local message = textBox.Text
+    if message ~= "" then
+        sendChatMessage(message)
+        textBox.Text = ""
     end
-    wait(0.1)
-    
-    DestroyLine:FireServer(humanoidRootPart)
-    humanoidRootPart.Anchored = false
-    wait(0.1)
-    localCharacter.HumanoidRootPart.Anchored = false
-    
-
-if targetPlayer then
-    bring(targetPlayer)
-else
-    warn("jogador nulo")
-end
-_G.pegando = false
-soltarfoco()
-else
-    OrionLib:MakeNotification({Name = "Player dentro do plot", Content = "O bring não é aplicavel a players dentro de casas. Use o Blobman :)", Image = "", Time = 5})
-end
 end
 
 
+textBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        showChatBubble()
+    end
+end)
 
-DevTab:AddButton({
-	Name = "Bring player",
-	Callback = function()
-        bring(_G.alvonome2)
-  	end
-})```
+local UserInputService = game:GetService("UserInputService")
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        if input.KeyCode == Enum.KeyCode.Slash or input.KeyCode == Enum.KeyCode.Semicolon then
+            textBox:CaptureFocus()
+            return Enum.ContextActionResult.Sink
+        end
+    end
+end)
+
+
+textBox:GetPropertyChangedSignal("Text"):Connect(function()
+    if textBox.Text:find(";") or textBox.Text:find("/") then
+        textBox.Text = textBox.Text:gsub("[;/]", "")
+        textBox:CaptureFocus()
+    end
+end)
